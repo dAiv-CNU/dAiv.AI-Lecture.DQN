@@ -1,11 +1,20 @@
 # dAiv Reinforcement Learning Basics
 
 ## Dependencies
-To run this project, ensure Python 3.8 or later is installed. Follow the steps below to set up the environment:
+To run this project, ensure Python 3.9 or later is installed. Follow the steps below to set up the environment:
+
+
+## Reproduction
+### Clone this repo
+```bash
+git clone https://github.com/dAiv-CNU/dAiv.AI-Lecture.DQN dqn
+cd dqn
+```
 
 ### Install Required Packages
 ```bash
-pip install -r requirements.txt
+pip install --upgrade uv
+uv sync
 ```
 
 ### Install PyTorch
@@ -13,42 +22,43 @@ For NVIDIA GPUs (CUDA versions):
 
 CUDA 11.8
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 
 CUDA 12.1
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 ```
 
 CUDA 12.4
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
 using Mac or Window cpu environment
 ```bash
-pip install torch torchvision torchaudio
+uv add torch torchvision torchaudio
 ```
 
-## How to Run
-### 1. Play the Snake Game
+### How to Run
+#### 1. Play the Snake Game
 Run the playable snake game:
 ```
-python snake_playable.py
+python snake.py normal
 ```
 
-### 2. Evolutionary Snake Game
+#### 2. Evolutionary Snake Game
 Use genetic algorithms to evolve the snake:
 ```
-python genetic/main_genetic.py
+python snake.py genetic
 ```
 
-### 3. Deep Q-Learning Snake Game
+#### 3. Deep Q-Learning Snake Game
 Run the DQN-based snake AI:
 ```
-python dqn/main_dqn.py
+python snake.py dqn
 ```
+
 
 ## Credits
 Snake game code by HonzaKral: https://gist.github.com/HonzaKral/833ee2b30231c53ec78e

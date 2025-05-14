@@ -2,6 +2,7 @@ import pygame
 import random
 import numpy as np
 import time
+import sys
 from config import FPS, SCREEN_SIZE, PIXEL_SIZE, LINE_WIDTH, SPEED
 
 # 방향 정의
@@ -170,5 +171,11 @@ def main():
 
     pygame.quit()
 
+
 if __name__ == '__main__':
-    main()
+    # 명령줄 인수가 있으면 main.py로 전달
+    if len(sys.argv) > 1:
+        from main import main as main_entry
+        main_entry()
+    else:
+        main()

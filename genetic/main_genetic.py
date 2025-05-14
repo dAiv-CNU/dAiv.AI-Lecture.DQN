@@ -1,9 +1,9 @@
 import pygame, random
 import numpy as np
 from copy import deepcopy
-from snake import Snake
+from genetic.snake import Snake
 from config import SCREEN_SIZE, PIXEL_SIZE
-from genome import Genome
+from genetic.genome import Genome
 
 #Parameters
 N_POPULATION = 50

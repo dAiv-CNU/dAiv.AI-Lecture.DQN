@@ -55,7 +55,7 @@ class SnakeEnv(gym.Env):
 
     def step(self, action):
         if self.done:
-            return self.get_observation(), 0, self.done, {}
+            return self.get_observation(), 0, self.done, {}, {}
 
         self.direction = action
         old_head = self.snake[0]
@@ -67,7 +67,7 @@ class SnakeEnv(gym.Env):
                 new_head[1] < 0 or new_head[1] >= config.SCREEN_SIZE or
                 new_head.tolist() in self.snake.tolist()):
             self.done = True
-            return self.get_observation(), -100, self.done, {}
+            return self.get_observation(), -100, self.done, {}, {}
 
         # 과일을 먹으면 점수 증가
         reward = 10
@@ -80,7 +80,7 @@ class SnakeEnv(gym.Env):
 
         # 새로운 머리 추가
         self.snake = np.concatenate([[new_head], self.snake], axis=0)
-        return self.get_observation(), reward, self.done, {}
+        return self.get_observation(), reward, self.done, {}, {}
 
     def render(self, mode='human'):
         import pygame

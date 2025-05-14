@@ -1,22 +1,16 @@
+from ..normal.snake import DIRECTIONS, config
+
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import random
-import config
 
-# 방향 정의
-DIRECTIONS = np.array([
-    (0, -1),  # UP
-    (1, 0),   # RIGHT
-    (0, 1),   # DOWN
-    (-1, 0)   # LEFT
-])
 
-class SnakeEnv(gym.Env):
+class SnakeBoard(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self):
-        super(SnakeEnv, self).__init__()
+        super().__init__()
         self.action_space = spaces.Discrete(4)  # 4개의 방향 (UP, RIGHT, DOWN, LEFT)
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(config.SCREEN_SIZE, config.SCREEN_SIZE, 3), dtype=np.uint8
@@ -55,7 +49,7 @@ class SnakeEnv(gym.Env):
 
     def step(self, action):
         if self.done:
-            return self.get_observation(), 0, self.done, {}, {}
+            return self.get_observation(), 0, self.done, {}
 
         self.direction = action
         old_head = self.snake[0]
@@ -67,7 +61,7 @@ class SnakeEnv(gym.Env):
                 new_head[1] < 0 or new_head[1] >= config.SCREEN_SIZE or
                 new_head.tolist() in self.snake.tolist()):
             self.done = True
-            return self.get_observation(), -100, self.done, {}, {}
+            return self.get_observation(), -100, self.done, {}
 
         # 과일을 먹으면 점수 증가
         reward = 10
@@ -80,7 +74,7 @@ class SnakeEnv(gym.Env):
 
         # 새로운 머리 추가
         self.snake = np.concatenate([[new_head], self.snake], axis=0)
-        return self.get_observation(), reward, self.done, {}, {}
+        return self.get_observation(), reward, self.done, {}
 
     def render(self, mode='human'):
         import pygame
@@ -100,10 +94,18 @@ class SnakeEnv(gym.Env):
 
         # 뱀과 과일 그리기
         for bit in self.snake:
-            pygame.draw.rect(self.screen, (0, 255, 0),
-                             (bit[0] * config.PIXEL_SIZE, bit[1] * config.PIXEL_SIZE, config.PIXEL_SIZE, config.PIXEL_SIZE))
-        pygame.draw.rect(self.screen, (255, 0, 0),
-                         (self.fruit[0] * config.PIXEL_SIZE, self.fruit[1] * config.PIXEL_SIZE, config.PIXEL_SIZE, config.PIXEL_SIZE))
+            pygame.draw.rect(self.screen, (0, 255, 0),(
+                bit[0] * config.PIXEL_SIZE,
+                bit[1] * config.PIXEL_SIZE,
+                config.PIXEL_SIZE,
+                config.PIXEL_SIZE
+            ))
+        pygame.draw.rect(self.screen, (255, 0, 0), (
+            self.fruit[0] * config.PIXEL_SIZE,
+            self.fruit[1] * config.PIXEL_SIZE,
+            config.PIXEL_SIZE,
+            config.PIXEL_SIZE
+        ))
 
         # 점수 표시
         font = pygame.font.SysFont(None, 20)

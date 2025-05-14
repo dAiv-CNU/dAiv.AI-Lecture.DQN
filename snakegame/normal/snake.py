@@ -1,9 +1,12 @@
-import pygame
-import random
+from ..config import FPS, SCREEN_SIZE, PIXEL_SIZE, LINE_WIDTH, SPEED
+from .. import config
+
 import numpy as np
+import pygame
+
+import random
 import time
-import sys
-from config import FPS, SCREEN_SIZE, PIXEL_SIZE, LINE_WIDTH, SPEED
+
 
 # 방향 정의
 DIRECTIONS = np.array([
@@ -13,7 +16,8 @@ DIRECTIONS = np.array([
     (-1, 0)   # LEFT
 ])
 
-class Snake:
+
+class SnakeBoard:
     def __init__(self, screen):
         self.screen = screen
         self.speed = SPEED
@@ -158,24 +162,3 @@ class Snake:
                     elif event.key == pygame.K_SPACE:
                         self.reset_game()
                         return True
-
-def main():
-    pygame.init()
-    pygame.font.init()
-    screen = pygame.display.set_mode((SCREEN_SIZE * PIXEL_SIZE, SCREEN_SIZE * PIXEL_SIZE))
-    pygame.display.set_caption('Snake Game')
-
-    game = Snake(screen)
-    while game.run():
-        pass
-
-    pygame.quit()
-
-
-if __name__ == '__main__':
-    # 명령줄 인수가 있으면 main.py로 전달
-    if len(sys.argv) > 1:
-        from main import main as main_entry
-        main_entry()
-    else:
-        main()

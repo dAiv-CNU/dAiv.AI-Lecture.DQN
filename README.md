@@ -44,19 +44,19 @@ uv add torch torchvision torchaudio
 #### 1. Play the Snake Game
 Run the playable snake game:
 ```bash
-python snake.py normal
+python -m snakegame normal
 ```
 
 #### 2. Evolutionary Snake Game
 Use genetic algorithms to evolve the snake:
 ```bash
-python snake.py genetic
+python -m snakegame genetic
 ```
 
 #### 3. Deep Q-Learning Snake Game
 Run the DQN-based snake AI:
 ```bash
-python snake.py dqn
+python -m snakegame dqn
 ```
 
 

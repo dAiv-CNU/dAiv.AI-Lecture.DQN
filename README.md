@@ -22,17 +22,17 @@ For NVIDIA GPUs (CUDA versions):
 
 CUDA 11.8
 ```bash
-uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --frozen
 ```
 
 CUDA 12.1
 ```bash
-uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121 --frozen
 ```
 
 CUDA 12.4
 ```bash
-uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 --frozen
 ```
 
 using Mac or Window cpu environment

@@ -11,10 +11,14 @@ from itertools import count
 import random
 import math
 import time
+import os
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"INFO: Using device - {device}")
+
+if not os.path.isdir(config.CHECKPOINT_PATH):
+    os.makedirs(config.CHECKPOINT_PATH)
 
 
 def main():
@@ -38,6 +42,15 @@ def main():
     # 학습률 조정
     optimizer = optim.AdamW(online_net.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
     memory = ReplayMemory(20000, online_net, target_net, optimizer, device, config)
+
+    # 체크포인트 로드
+    if os.path.exists(os.path.join(config.CHECKPOINT_PATH, "checkpoint.pth")):
+        checkpoint = torch.load(os.path.join(config.CHECKPOINT_PATH, "checkpoint.pth"), map_location=device)
+        online_net.load_state_dict(checkpoint['model_state_dict'])
+        target_net.load_state_dict(checkpoint['model_state_dict'])
+        optimizer = optim.AdamW(online_net.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        print("[INFO] 체크포인트 로드 완료")
 
     # 전체 에피소드 루프
     for i_episode in range(config.NUM_EPISODES):
@@ -85,19 +98,19 @@ def main():
             if steps_done >= config.LEARNING_STARTS:
                 memory.optimize()
 
-            # 타겟 네트워크 소프트 업데이트
-            if steps_done >= config.LEARNING_STARTS:
-                with torch.no_grad():
-                    for key in online_net.state_dict():
-                        target_net.state_dict()[key].data.copy_(
-                            config.TAU * online_net.state_dict()[key].data + (1.0 - config.TAU) * target_net.state_dict()[key].data
-                        )
-
             # 게임 렌더링
             env.render(screen)
 
             if done:
                 break
+
+        # 타겟 네트워크 소프트 업데이트
+        if steps_done >= config.LEARNING_STARTS:
+            with torch.no_grad():
+                for key in online_net.state_dict():
+                    target_net.state_dict()[key].data.copy_(
+                        config.TAU * online_net.state_dict()[key].data + (1.0 - config.TAU) * target_net.state_dict()[key].data
+                    )
 
         # 빠른 모드 진행 상황 출력 (빠른 모드에서는 10개 에피소드마다 출력)
         if i_episode < config.FAST_EPISODES:
@@ -106,6 +119,16 @@ def main():
         else:
             # 일반 모드에서는 매 에피소드마다 출력
             print(f"에피소드 {i_episode + 1}: 총 보상 = {total_reward}, 점수 = {env.score}")
+            
+            # 체크포인트 저장
+            if (i_episode + 1) % config.CHECKPOINT_INTERVAL == 0:
+                checkpoint = {
+                    'model_state_dict': online_net.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'episode': i_episode + 1
+                }
+                torch.save(checkpoint, os.path.join(config.CHECKPOINT_PATH, "checkpoint.pth"))
+                print(f"[INFO] 체크포인트 저장 완료 (에피소드 {i_episode + 1})")
 
     # Pygame 종료
     pygame.quit()

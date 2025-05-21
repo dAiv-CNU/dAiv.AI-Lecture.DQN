@@ -8,12 +8,13 @@ import torch
 from torch import optim
 
 from itertools import count
-import math
 import random
+import math
 import time
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"INFO: Using device - {device}")
 
 
 def main():
@@ -35,13 +36,11 @@ def main():
     target_net.eval()
 
     # 학습률 조정
-    learning_rate = 1e-4
-    optimizer = optim.AdamW(online_net.parameters(), lr=learning_rate, weight_decay=1e-5)
+    optimizer = optim.AdamW(online_net.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
     memory = ReplayMemory(20000, online_net, target_net, optimizer, device, config)
 
     # 초기화
-    total_steps = 0
-    learning_starts = 1000
+    learning_starts = 5000
     target_update_freq = 100
 
     # 처음 1000번의 에피소드는 빠른 속도로 실행
@@ -53,17 +52,15 @@ def main():
         if i_episode == fast_mode_episodes:
             print(f"\n[INFO] 빠른 학습 모드 종료 ({fast_mode_episodes}개 에피소드 완료)")
             # 일반 속도로 환경 재설정
-            env = SnakeBoard(speed_multiplier=1.0)
+            env.speed_multiplier = 1.0
             print("[INFO] 일반 속도 모드로 전환\n")
 
         # 환경 초기화
         state, _ = env.reset()
         state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        total_reward = 0
+        total_reward = 0  # 총 보상 초기화
 
         for steps_done in count():
-            total_steps += 1
-
             # Pygame 이벤트 처리
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -71,13 +68,12 @@ def main():
                     return
 
             # 행동 선택
-            if total_steps < learning_starts:
-                random.seed(time.time_ns() % 100000 + total_steps)
+            if steps_done < learning_starts:
+                random.seed(time.time_ns() % 100000 + steps_done)
                 action = torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
                 eps_threshold = 1.0
             else:
-                eps_decay = 5000
-                eps_threshold = 0.05 + (0.9 - 0.05) * math.exp(-1. * (total_steps - learning_starts) / eps_decay)
+                eps_threshold = config.EPS_END + (config.EPS_START - config.EPS_END) * math.exp(-1. * steps_done / config.EPS_DECAY)
                 action = online_net.select_action(state, eps_threshold)
 
             # 환경 단계 진행
@@ -93,11 +89,11 @@ def main():
             state = next_state_tensor
 
             # 모델 최적화
-            if total_steps >= learning_starts:
+            if steps_done >= learning_starts:
                 memory.optimize()
 
             # 타겟 네트워크 업데이트
-            if total_steps >= learning_starts and total_steps % target_update_freq == 0:
+            if steps_done >= learning_starts and steps_done % target_update_freq == 0:
                 target_net.load_state_dict(online_net.state_dict())
 
             # 게임 렌더링

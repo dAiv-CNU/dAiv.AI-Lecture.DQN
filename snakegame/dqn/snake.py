@@ -193,11 +193,6 @@ class SnakeBoard(gym.Env):
 
         pygame.display.flip()
 
-        # 속도 조절 (빠른 학습 모드에서는 디스플레이 업데이트 주기 조절)
-        if self.speed_multiplier > 1.0:
-            # 빠른 학습 모드에서는 디스플레이 업데이트 주기를 더 길게 설정
-            pygame.time.wait(int(1000 / (config.FPS * self.speed_multiplier)))
-
     def close(self):
         if hasattr(self, 'screen'):
             import pygame

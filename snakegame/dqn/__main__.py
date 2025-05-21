@@ -9,6 +9,8 @@ from torch import optim
 
 from itertools import count
 import math
+import random
+import time
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,24 +26,44 @@ def main():
     pygame.display.set_caption("Snake Game with DQN")
 
     # 환경 및 네트워크 초기화
-    env = SnakeBoard()
+    initial_speed_multiplier = 100.0  # 초기 속도 증가 배수 (매우 빠르게)
+    env = SnakeBoard(speed_multiplier=initial_speed_multiplier)
     n_actions = env.action_space.n
     online_net = SnakeModel((config.SCREEN_SIZE, config.SCREEN_SIZE, 3), n_actions).to(device)
     target_net = SnakeModel((config.SCREEN_SIZE, config.SCREEN_SIZE, 3), n_actions).to(device)
     target_net.load_state_dict(online_net.state_dict())
     target_net.eval()
 
-    optimizer = optim.AdamW(online_net.parameters(), lr=config.LR)
-    memory = ReplayMemory(10000, online_net, target_net, optimizer, device, config)
+    # 학습률 조정
+    learning_rate = 1e-4
+    optimizer = optim.AdamW(online_net.parameters(), lr=learning_rate, weight_decay=1e-5)
+    memory = ReplayMemory(20000, online_net, target_net, optimizer, device, config)
 
-    # 에피소드 반복
+    # 초기화
+    total_steps = 0
+    learning_starts = 1000
+    target_update_freq = 100
+
+    # 처음 1000번의 에피소드는 빠른 속도로 실행
+    fast_mode_episodes = 1000  # 빠른 모드에서 실행할 에피소드 수
+
+    # 전체 에피소드 루프
     for i_episode in range(config.NUM_EPISODES):
+        # 1000번 에피소드 이후에는 일반 속도로 전환
+        if i_episode == fast_mode_episodes:
+            print(f"\n[INFO] 빠른 학습 모드 종료 ({fast_mode_episodes}개 에피소드 완료)")
+            # 일반 속도로 환경 재설정
+            env = SnakeBoard(speed_multiplier=1.0)
+            print("[INFO] 일반 속도 모드로 전환\n")
+
         # 환경 초기화
         state, _ = env.reset()
         state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
-        total_reward = 0  # 총 보상 초기화
+        total_reward = 0
 
         for steps_done in count():
+            total_steps += 1
+
             # Pygame 이벤트 처리
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -49,8 +71,14 @@ def main():
                     return
 
             # 행동 선택
-            eps_threshold = config.EPS_END + (config.EPS_START - config.EPS_END) * math.exp(-1. * steps_done / config.EPS_DECAY)
-            action = online_net.select_action(state, eps_threshold)
+            if total_steps < learning_starts:
+                random.seed(time.time_ns() % 100000 + total_steps)
+                action = torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
+                eps_threshold = 1.0
+            else:
+                eps_decay = 5000
+                eps_threshold = 0.05 + (0.9 - 0.05) * math.exp(-1. * (total_steps - learning_starts) / eps_decay)
+                action = online_net.select_action(state, eps_threshold)
 
             # 환경 단계 진행
             next_state, reward, done, _ = env.step(action.item())
@@ -65,7 +93,12 @@ def main():
             state = next_state_tensor
 
             # 모델 최적화
-            memory.optimize()
+            if total_steps >= learning_starts:
+                memory.optimize()
+
+            # 타겟 네트워크 업데이트
+            if total_steps >= learning_starts and total_steps % target_update_freq == 0:
+                target_net.load_state_dict(online_net.state_dict())
 
             # 게임 렌더링
             env.render(screen)
@@ -73,15 +106,13 @@ def main():
             if done:
                 break
 
-        # 타겟 네트워크 소프트 업데이트
-        with torch.no_grad():
-            for key in online_net.state_dict():
-                target_net.state_dict()[key].data.copy_(
-                    config.TAU * online_net.state_dict()[key].data + (1.0 - config.TAU) * target_net.state_dict()[key].data
-                )
-
-        # 에피소드 결과 출력
-        print(f"Episode {i_episode + 1}: Total Reward = {total_reward}, Score = {env.score}")
+        # 빠른 모드 진행 상황 출력 (빠른 모드에서는 10개 에피소드마다 출력)
+        if i_episode < fast_mode_episodes:
+            if (i_episode + 1) % 10 == 0:  # 10개 에피소드마다 출력
+                print(f"빠른 학습: {i_episode + 1}/{fast_mode_episodes} 에피소드 완료")
+        else:
+            # 일반 모드에서는 매 에피소드마다 출력
+            print(f"에피소드 {i_episode + 1}: 총 보상 = {total_reward}, 점수 = {env.score}")
 
     # Pygame 종료
     pygame.quit()

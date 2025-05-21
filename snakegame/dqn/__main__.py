@@ -27,7 +27,7 @@ def main():
     pygame.display.set_caption("Snake Game with DQN")
 
     # 환경 및 네트워크 초기화
-    initial_speed_multiplier = 100.0  # 초기 속도 증가 배수 (매우 빠르게)
+    initial_speed_multiplier = 10.0
     env = SnakeBoard(speed_multiplier=initial_speed_multiplier)
     n_actions = env.action_space.n
     online_net = SnakeModel((config.SCREEN_SIZE, config.SCREEN_SIZE, 3), n_actions).to(device)
@@ -39,18 +39,11 @@ def main():
     optimizer = optim.AdamW(online_net.parameters(), lr=config.LR, weight_decay=config.WEIGHT_DECAY)
     memory = ReplayMemory(20000, online_net, target_net, optimizer, device, config)
 
-    # 초기화
-    learning_starts = 5000
-    target_update_freq = 100
-
-    # 처음 1000번의 에피소드는 빠른 속도로 실행
-    fast_mode_episodes = 1000  # 빠른 모드에서 실행할 에피소드 수
-
     # 전체 에피소드 루프
     for i_episode in range(config.NUM_EPISODES):
-        # 1000번 에피소드 이후에는 일반 속도로 전환
-        if i_episode == fast_mode_episodes:
-            print(f"\n[INFO] 빠른 학습 모드 종료 ({fast_mode_episodes}개 에피소드 완료)")
+        # fast 에피소드 이후에는 일반 속도로 전환
+        if i_episode == config.FAST_EPISODES:
+            print(f"\n[INFO] 빠른 학습 모드 종료 ({config.FAST_EPISODES}개 에피소드 완료)")
             # 일반 속도로 환경 재설정
             env.speed_multiplier = 1.0
             print("[INFO] 일반 속도 모드로 전환\n")
@@ -68,7 +61,7 @@ def main():
                     return
 
             # 행동 선택
-            if steps_done < learning_starts:
+            if steps_done < config.LEARNING_STARTS:
                 random.seed(time.time_ns() % 100000 + steps_done)
                 action = torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
                 eps_threshold = 1.0
@@ -89,12 +82,16 @@ def main():
             state = next_state_tensor
 
             # 모델 최적화
-            if steps_done >= learning_starts:
+            if steps_done >= config.LEARNING_STARTS:
                 memory.optimize()
 
-            # 타겟 네트워크 업데이트
-            if steps_done >= learning_starts and steps_done % target_update_freq == 0:
-                target_net.load_state_dict(online_net.state_dict())
+            # 타겟 네트워크 소프트 업데이트
+            if steps_done >= config.LEARNING_STARTS:
+                with torch.no_grad():
+                    for key in online_net.state_dict():
+                        target_net.state_dict()[key].data.copy_(
+                            config.TAU * online_net.state_dict()[key].data + (1.0 - config.TAU) * target_net.state_dict()[key].data
+                        )
 
             # 게임 렌더링
             env.render(screen)
@@ -103,9 +100,9 @@ def main():
                 break
 
         # 빠른 모드 진행 상황 출력 (빠른 모드에서는 10개 에피소드마다 출력)
-        if i_episode < fast_mode_episodes:
+        if i_episode < config.FAST_EPISODES:
             if (i_episode + 1) % 10 == 0:  # 10개 에피소드마다 출력
-                print(f"빠른 학습: {i_episode + 1}/{fast_mode_episodes} 에피소드 완료")
+                print(f"빠른 학습: {i_episode + 1}/{config.FAST_EPISODES} 에피소드 완료")
         else:
             # 일반 모드에서는 매 에피소드마다 출력
             print(f"에피소드 {i_episode + 1}: 총 보상 = {total_reward}, 점수 = {env.score}")

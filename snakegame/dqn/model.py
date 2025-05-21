@@ -11,19 +11,15 @@ class SnakeValueNet(nn.Module):
         self.input_shape = input_shape
         self.n_actions = n_actions
 
-        # 퍼셉션 모듈에서 나온 특징 맵의 평탄화 후 처리
-        # 입력 크기는 perception_module의 출력 크기에 따라 계산됨
-        feature_size = 64 * input_shape[0] * input_shape[1]  # 64 채널 * 높이 * 너비
-
         self.value_net = nn.Sequential(
-            nn.Linear(feature_size, 512),
+            nn.Linear(input_shape, 512),
             nn.ReLU(),
-            nn.Linear(512, n_actions)
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, n_actions)
         )
 
     def forward(self, x):
-        # 특징 맵을 평탄화하여 완전 연결 레이어에 전달
-        x = torch.flatten(x, 1)
         return self.value_net(x)
 
 
@@ -35,15 +31,19 @@ class SnakeModel(nn.Module):
         self.n_actions = n_actions
 
         self.perception_module = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(3, 32, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
+            nn.Flatten()
         )
+        
+        # 입력 크기 계산 (stride=2로 인해 크기가 1/8로 줄어듦)
+        conv_out_size = input_shape[0] // 8 * input_shape[1] // 8 * 64
 
-        self.value_net = SnakeValueNet(input_shape, n_actions)
+        self.value_net = SnakeValueNet(conv_out_size, n_actions)
 
     def forward(self, state):
         # 입력 차원 변환: (batch, height, width, channels) -> (batch, channels, height, width)

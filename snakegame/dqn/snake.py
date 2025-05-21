@@ -112,26 +112,24 @@ class SnakeBoard(gym.Env):
         new_dist_to_fruit = np.linalg.norm(new_head - self.fruit)
 
         # 기본 보상 (생존 보상)
-        reward = 0.01
+        reward = 0.0
 
         # 과일에 가까워지면 보상, 멀어지면 페널티 (단순화)
         if new_dist_to_fruit < old_dist_to_fruit:
             # 과일에 가까워지는 행동에 고정 보상
-            reward += 0.2
+            reward += 0.1
         else:
             # 과일에서 멀어지는 행동에 고정 페널티
-            reward -= 0.1
+            reward -= 0.05
 
         # 과일을 먹으면 큰 보상
         if all(new_head == self.fruit):
             self.score += 1
             # 과일을 먹으면 큰 고정 보상
-            reward = 10.0
+            reward = 20.0
             self.place_fruit()
         else:
             self.snake = self.snake[:-1, :]  # 꼬리 삭제
-
-            # 벽 근처에서는 페널티 제거 (단순화)
 
             # 자기 몸과의 가장 가까운 거리 계산
             if len(self.snake) > 3:  # 몸 길이가 충분할 때만 계산
@@ -140,9 +138,9 @@ class SnakeBoard(gym.Env):
                     dist = np.linalg.norm(new_head - segment)
                     min_body_dist = min(min_body_dist, dist)
 
-                # 몸에 너무 가까워지면 고정 페널티 (단순화)
+                # 몸에 너무 가까워지면 고정 페널티
                 if min_body_dist < 1.5:  # 몸과의 거리가 1.5 이하이면 페널티
-                    reward -= 0.1  # 고정 페널티
+                    reward -= 0.2  # 고정 페널티
 
         # 새로운 머리 추가
         self.snake = np.concatenate([[new_head], self.snake], axis=0)
